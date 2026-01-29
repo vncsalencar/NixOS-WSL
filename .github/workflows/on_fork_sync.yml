@@ -1,0 +1,48 @@
+name: "Build on Fork Sync"
+
+# This workflow builds the .wsl tarball whenever you sync your fork with upstream.
+# The artifact will be available for download from the Actions tab.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: {} # Allows manual triggering from the Actions tab
+
+jobs:
+  build:
+    name: Build WSL Tarball
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+        with:
+          fetch-depth: 0
+
+      - name: Install Nix
+        uses: ./.github/actions/install-nix
+
+      - name: Set Version
+        uses: ./.github/actions/version
+        id: version
+
+      - name: Build Tarball
+        uses: ./.github/actions/build-wsl-tarball
+        with:
+          config: default
+          filename: nixos.wsl
+
+      - name: Upload Tarball
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: nixos-wsl-${{ steps.version.outputs.version }}
+          path: nixos.wsl
+          retention-days: 90
+
+      - name: Build Summary
+        run: |
+          echo "## NixOS-WSL Build Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Download the \`nixos.wsl\` artifact from the Actions tab." >> $GITHUB_STEP_SUMMARY
